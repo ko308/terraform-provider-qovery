@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -58,7 +59,65 @@ var (
 		qovery.KUBERNETESENUM_K3_S,
 	})
 	clusterKubernetesModeDefault = string(qovery.KUBERNETESENUM_MANAGED)
+
+	// Cluster advanced settings
+	advancedSettingsDefault = map[string]advSettingAttr{
+		"aws.cloudwatch.eks_logs_retention_days": {"Maximum retention days in Cloudwatch for EKS logs", types.Int64Type, tfsdk.AttributePlanModifiers{
+			modifiers.NewInt64DefaultModifier(90),
+		}},
+		"aws.iam.admin_group": {"Allows you to specify the IAM group name associated to the Qovery user", types.StringType, tfsdk.AttributePlanModifiers{
+			modifiers.NewStringDefaultModifier("Admins"),
+		}},
+		"aws.vpc.enable_s3_flow_logs": {"Enable flow logs on the cluster VPC and store them in an s3 bucket", types.BoolType, tfsdk.AttributePlanModifiers{
+			modifiers.NewBoolDefaultModifier(false),
+		}},
+		"aws.vpc.flow_logs_retention_days": {"Set the number of retention days for flow logs. Unlimited retention with value", types.Int64Type, tfsdk.AttributePlanModifiers{
+			modifiers.NewInt64DefaultModifier(365),
+		}},
+		"cloud_provider.container_registry.tags": {"Add additional tags on the cluster dedicated registry", types.MapType{ElemType: types.StringType}, tfsdk.AttributePlanModifiers{
+			modifiers.NewStringMapDefaultModifier(make(map[string]string)),
+		}},
+		"database.mongodb.allowed_cidrs": {"List of allowed CIDRS", types.SetType{ElemType: types.StringType}, tfsdk.AttributePlanModifiers{
+			modifiers.NewStringSliceDefaultModifier([]string{"0.0.0.0/0"}),
+		}},
+		"database.mongodb.deny_public_access": {"Deny public access to all MongoDB databases", types.BoolType, tfsdk.AttributePlanModifiers{
+			modifiers.NewBoolDefaultModifier(false),
+		}},
+		"database.mysql.allowed_cidrs": {"List of allowed CIDRS", types.SetType{ElemType: types.StringType}, tfsdk.AttributePlanModifiers{
+			modifiers.NewStringSliceDefaultModifier([]string{"0.0.0.0/0"}),
+		}},
+		"database.mysql.deny_public_access": {"Deny public access to all MySQL databases", types.BoolType, tfsdk.AttributePlanModifiers{
+			modifiers.NewBoolDefaultModifier(false),
+		}},
+		"database.postgresql.allowed_cidrs": {"List of allowed CIDRS", types.SetType{ElemType: types.StringType}, tfsdk.AttributePlanModifiers{
+			modifiers.NewStringSliceDefaultModifier([]string{"0.0.0.0/0"}),
+		}},
+		"database.postgresql.deny_public_access": {"Deny public access to all PostgreSQL databases", types.BoolType, tfsdk.AttributePlanModifiers{
+			modifiers.NewBoolDefaultModifier(false),
+		}},
+		"database.redis.allowed_cidrs": {"List of allowed CIDRS", types.SetType{ElemType: types.StringType}, tfsdk.AttributePlanModifiers{
+			modifiers.NewStringSliceDefaultModifier([]string{"0.0.0.0/0"}),
+		}},
+		"database.redis.deny_public_access": {"Deny public access to all Redis databases", types.BoolType, tfsdk.AttributePlanModifiers{
+			modifiers.NewBoolDefaultModifier(false),
+		}},
+		"load_balancer.size": {"Allows you to specify the load balancer size in front of your cluster", types.StringType, tfsdk.AttributePlanModifiers{
+			modifiers.NewStringDefaultModifier("lb-s"),
+		}},
+		"loki.log_retention_in_week": {"Maximum Kubernetes pods (containers/application/jobs/cronjob) retention logs in weeks", types.Int64Type, tfsdk.AttributePlanModifiers{
+			modifiers.NewInt64DefaultModifier(12),
+		}},
+		"registry.image_retention_time": {"Allows you to specify an amount in seconds after which images in the default registry are deleted", types.Int64Type, tfsdk.AttributePlanModifiers{
+			modifiers.NewInt64DefaultModifier(31536000),
+		}},
+	}
 )
+
+type advSettingAttr struct {
+	description   string
+	_type         attr.Type
+	planModifiers tfsdk.AttributePlanModifiers
+}
 
 type clusterResource struct {
 	client *client.Client
@@ -91,6 +150,16 @@ func (r *clusterResource) Configure(_ context.Context, req resource.ConfigureReq
 }
 
 func (r clusterResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	advSettings := map[string]tfsdk.Attribute{}
+	for k, v := range advancedSettingsDefault {
+		advSettings[k] = tfsdk.Attribute{
+			Description:   v.description,
+			Optional:      true,
+			Computed:      true,
+			Type:          v._type,
+			PlanModifiers: v.planModifiers,
+		}
+	}
 	return tfsdk.Schema{
 		Description: "Provides a Qovery cluster resource. This can be used to create and manage Qovery cluster.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -264,6 +333,12 @@ func (r clusterResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagno
 				Validators: []tfsdk.AttributeValidator{
 					validators.NewStringEnumValidator(clusterStates),
 				},
+			},
+			"advanced_settings": {
+				Description: "Advanced settings of the cluster.",
+				Optional:    true,
+				Computed:    true,
+				Attributes:  tfsdk.SingleNestedAttributes(advSettings),
 			},
 		},
 	}, nil

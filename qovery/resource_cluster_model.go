@@ -16,20 +16,21 @@ const (
 )
 
 type Cluster struct {
-	Id              types.String `tfsdk:"id"`
-	OrganizationId  types.String `tfsdk:"organization_id"`
-	CredentialsId   types.String `tfsdk:"credentials_id"`
-	Name            types.String `tfsdk:"name"`
-	CloudProvider   types.String `tfsdk:"cloud_provider"`
-	Region          types.String `tfsdk:"region"`
-	Description     types.String `tfsdk:"description"`
-	KubernetesMode  types.String `tfsdk:"kubernetes_mode"`
-	InstanceType    types.String `tfsdk:"instance_type"`
-	MinRunningNodes types.Int64  `tfsdk:"min_running_nodes"`
-	MaxRunningNodes types.Int64  `tfsdk:"max_running_nodes"`
-	Features        types.Object `tfsdk:"features"`
-	RoutingTables   types.Set    `tfsdk:"routing_table"`
-	State           types.String `tfsdk:"state"`
+	Id               types.String `tfsdk:"id"`
+	OrganizationId   types.String `tfsdk:"organization_id"`
+	CredentialsId    types.String `tfsdk:"credentials_id"`
+	Name             types.String `tfsdk:"name"`
+	CloudProvider    types.String `tfsdk:"cloud_provider"`
+	Region           types.String `tfsdk:"region"`
+	Description      types.String `tfsdk:"description"`
+	KubernetesMode   types.String `tfsdk:"kubernetes_mode"`
+	InstanceType     types.String `tfsdk:"instance_type"`
+	MinRunningNodes  types.Int64  `tfsdk:"min_running_nodes"`
+	MaxRunningNodes  types.Int64  `tfsdk:"max_running_nodes"`
+	Features         types.Object `tfsdk:"features"`
+	RoutingTables    types.Set    `tfsdk:"routing_table"`
+	State            types.String `tfsdk:"state"`
+	AdvancedSettings types.Map    `tfsdk:"advanced_settings"`
 }
 
 func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
